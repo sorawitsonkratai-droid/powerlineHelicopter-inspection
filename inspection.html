@@ -257,16 +257,15 @@ function setField(tower, field, val){
   setTowerData(tower,d);
 }
 
-function renderTowerCard(tower){
-  const line=DB[currentZone][currentLineIdx];
-  const idx=line.towers.indexOf(tower);
-  const nextTower=line.towers[idx+1]||null;
-  const d=getTowerData(tower);
-  const isChecked=!!checked[tower];
+function renderTowerCard(tower,tIdx){
+  const route=DB[currentZone][currentLineIdx];
+  const nextTower=route.towers[tIdx+1]||null;
+  const d=getTowerData(tower,tIdx);
+  const ck=getTK(tower,tIdx);
+  const isChecked=!!checked[ck];
   const hasIssue=(d.pole||[]).length||(d.span||[]).length||d.poleOther||d.spanOther;
   const spanLabel=nextTower?`🔻 ปัญหาระหว่าง Span T.${tower} - ${nextTower}`:`🔻 ปัญหาระหว่าง Span T.${tower}`;
 
-  const route=DB[currentZone][currentLineIdx];
   // Get line name using li (parallel index array) + lines lookup
   let lineName="";
   if(route.li && route.li.length>0 && route.lines && route.lines.length>0){
@@ -277,8 +276,8 @@ function renderTowerCard(tower){
 
   el.className="card"+(isChecked?" checked":hasIssue?" has-issue":"");
 
-  const poleChips=["โคนเสารก","เถาวัลย์","อื่นๆ"].map(v=>`<span class="chip${(d.pole||[]).includes(v)?" active-orange":""}" onclick="toggleIssue('${tower}','pole','${v}')">${v}</span>`).join("");
-  const spanChips=["ต้นไม้","สปส.","อื่นๆ"].map(v=>`<span class="chip${(d.span||[]).includes(v)?" active-blue":""}" onclick="toggleIssue('${tower}','span','${v}')">${v}</span>`).join("");
+  const poleChips=["โคนเสารก","เถาวัลย์","อื่นๆ"].map(v=>`<span class="chip${(d.pole||[]).includes(v)?" active-orange":""}" onclick="toggleIssue('${tower}',${tIdx},'pole','${v}')">${v}</span>`).join("");
+  const spanChips=["ต้นไม้","สปส.","อื่นๆ"].map(v=>`<span class="chip${(d.span||[]).includes(v)?" active-blue":""}" onclick="toggleIssue('${tower}',${tIdx},'span','${v}')">${v}</span>`).join("");
   const showPoleOther=(d.pole||[]).includes("อื่นๆ");
   const showPoleNote=(d.pole||[]).length>0||d.poleOther;
   const hasSpanIssue=(d.span||[]).length>0||d.spanOther;
@@ -286,7 +285,7 @@ function renderTowerCard(tower){
 
   el.innerHTML=`
     <div style="display:flex;align-items:center;gap:10px;padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid ${isChecked?"#1D9E7544":hasIssue?"#E24B4A22":"#eee"};">
-      <button onclick="toggleCheck('${tower}')" style="background:${isChecked?"#1D9E75":"#fff"};color:${isChecked?"#fff":"#333"};border:2px solid ${isChecked?"#1D9E75":"#bbb"};border-radius:8px;padding:6px 14px;font-weight:700;font-size:15px;box-shadow:${isChecked?"0 2px 8px #1D9E7566":"0 1px 3px #0002"};transition:all 0.15s;">${tower}</button>
+      <button onclick="toggleCheck('${tower}',${tIdx})" style="background:${isChecked?"#1D9E75":"#fff"};color:${isChecked?"#fff":"#333"};border:2px solid ${isChecked?"#1D9E75":"#bbb"};border-radius:8px;padding:6px 14px;font-weight:700;font-size:15px;box-shadow:${isChecked?"0 2px 8px #1D9E7566":"0 1px 3px #0002"};transition:all 0.15s;">${tower}</button>
       <div style="flex:1;min-width:0;">
         ${isChecked?'<span class="tag-checked">✓ ตรวจแล้ว</span>':hasIssue?'<span class="tag-issue">⚠ มีปัญหา</span>':'<span class="tag-normal">ยังไม่ตรวจ</span>'}
         ${lineName?`<div style="font-size:11px;color:#c0392b;font-weight:600;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lineName}</div>`:""}
@@ -295,14 +294,14 @@ function renderTowerCard(tower){
     <div class="section-pole">
       <div class="section-title orange">🔺 ปัญหาที่เสา</div>
       <div>${poleChips}</div>
-      ${showPoleOther?`<textarea rows="2" placeholder="ระบุปัญหาที่เสา..." onchange="setField('${tower}','poleOther',this.value)">${d.poleOther||""}</textarea>`:""}
-      ${showPoleNote?`<textarea rows="2" placeholder="หมายเหตุ..." onchange="setField('${tower}','poleNote',this.value)">${d.poleNote||""}</textarea>`:""}
+      ${showPoleOther?`<textarea rows="2" placeholder="ระบุปัญหาที่เสา..." onchange="setField('${tower}',${tIdx},'poleOther',this.value)">${d.poleOther||""}</textarea>`:""}
+      ${showPoleNote?`<textarea rows="2" placeholder="หมายเหตุ..." onchange="setField('${tower}',${tIdx},'poleNote',this.value)">${d.poleNote||""}</textarea>`:""}
     </div>
     <div class="section-span">
       <div class="section-title blue">${spanLabel}</div>
       <div>${spanChips}</div>
-      ${showSpanOther?`<textarea rows="2" placeholder="ระบุปัญหาระหว่างเสา..." onchange="setField('${tower}','spanOther',this.value)">${d.spanOther||""}</textarea>`:""}
-      ${hasSpanIssue?`<textarea rows="2" placeholder="หมายเหตุ..." onchange="setField('${tower}','spanNote',this.value)">${d.spanNote||""}</textarea>`:""}
+      ${showSpanOther?`<textarea rows="2" placeholder="ระบุปัญหาระหว่างเสา..." onchange="setField('${tower}',${tIdx},'spanOther',this.value)">${d.spanOther||""}</textarea>`:""}
+      ${hasSpanIssue?`<textarea rows="2" placeholder="หมายเหตุ..." onchange="setField('${tower}',${tIdx},'spanNote',this.value)">${d.spanNote||""}</textarea>`:""}
     </div>
   `;
 }
