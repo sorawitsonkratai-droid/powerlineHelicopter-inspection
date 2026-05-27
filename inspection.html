@@ -343,13 +343,15 @@ function showSummary(){
   content.innerHTML="";
   let hasData=false;
   Object.entries(state.sessions).forEach(([key,s])=>{
-    const rows=Object.entries(s.towers||{}).filter(([,d])=>d&&((d.pole||[]).length||(d.span||[]).length||d.poleOther||d.spanOther));
+    const rows=Object.entries(s.towers||{}).filter(([,d])=>d&&((d.pole||[]).length||(d.span||[]).length||d.poleOther||d.spanOther))
+      .sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0));
     if(!rows.length) return;
     hasData=true;
     const block=document.createElement("div");
     block.style.marginBottom="16px";
     block.innerHTML=`<div style="font-weight:600;font-size:13px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #eee;">${s.line?.name}</div>`;
-    rows.forEach(([tower,d])=>{
+    rows.forEach(([tk,d])=>{
+      const tower=tk.split(":").slice(1).join(":");
       const pi=[...(d.pole||[])].filter(x=>x!=="อื่นๆ");if(d.poleOther)pi.push(d.poleOther);
       const si=[...(d.span||[])].filter(x=>x!=="อื่นๆ");if(d.spanOther)si.push(d.spanOther);
       const parts=[];
