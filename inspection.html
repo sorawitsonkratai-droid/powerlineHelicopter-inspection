@@ -311,12 +311,12 @@ function renderTowers(){
   const line=DB[currentZone][currentLineIdx];
   const list=document.getElementById("towers-list");
   list.innerHTML="";
-  line.towers.forEach(tower=>{
+  line.towers.forEach((tower,tIdx)=>{
     const div=document.createElement("div");
-    div.id="card-"+tower.replace(/[\/,]/g,"_");
+    div.id="card-"+tIdx;
     div.className="card";
     list.appendChild(div);
-    renderTowerCard(tower);
+    renderTowerCard(tower,tIdx);
   });
   updateBottomBar();
 }
