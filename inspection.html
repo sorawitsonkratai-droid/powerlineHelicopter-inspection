@@ -166,40 +166,63 @@ function clearAll(){
   showZone();
 }
 
-function showScreen(id, pushHistory=true){
+function showScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById("screen-"+id).classList.add("active");
   window.scrollTo(0,0);
-  if(pushHistory){
-    history.pushState({screen:id}, "", "");
-  }
+  history.pushState({screen:id}, "", "");
 }
 
-// Handle Android back button
+// Android back: just switch UI to whatever screen the popped state says
 window.addEventListener("popstate", function(e){
-  const active = document.querySelector(".screen.active")?.id?.replace("screen-","");
-  if(active === "inspect"){
-    showLinesInternal();
-    // re-push lines state so next back goes to zone
-    history.pushState({screen:"lines"}, "", "");
-  } else if(active === "lines"){
-    showZoneInternal();
-    // re-push zone state so next back exits app
-    history.pushState({screen:"zone"}, "", "");
-  } else if(active === "summary"){
-    showScreenInternal(prevScreen);
-    history.pushState({screen:prevScreen}, "", "");
-  }
-  // zone: do nothing, browser handles exit naturally
+  const target = e.state?.screen;
+  if(!target) return;
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+target).classList.add("active");
+  window.scrollTo(0,0);
+  if(target==="lines") _refreshLinesList();
+  if(target==="zone") _refreshZone();
 });
 
-// Internal versions that don't push history (called from popstate)
-function showScreenInternal(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById("screen-"+id).classList.add("active");
-  window.scrollTo(0,0);
+function _refreshLinesList(){
+  const total=totalIssues();
+  document.getElementById("lines-title").textContent=currentZone==="bkk"?"กรุงเทพฯ และปริมณฑล":"ภาคตะวันตก";
+  document.getElementById("btn-summary-lines").style.display=total>0?"":"none";
+  const list=document.getElementById("lines-list");
+  list.innerHTML="";
+  const groups=GROUPS[currentZone];
+  groups.forEach((group,gIdx)=>{
+    if(gIdx>0){const div=document.createElement("div");div.style.cssText="height:2px;background:#9aa3c2;margin:8px 0 12px;border-radius:1px;";list.appendChild(div);}
+    group.forEach(i=>{
+      const l=DB[currentZone][i];if(!l) return;
+      const key=`${currentZone}_${i}`;
+      const sess=state.sessions[key];
+      const cnt=sess?Object.values(sess.towers||{}).filter(d=>d&&((d.pole||[]).length||(d.span||[]).length||d.poleOther||d.spanOther)).length:0;
+      const btn=document.createElement("button");
+      btn.className="line-btn"+(cnt>0?" has-issue":"");
+      btn.innerHTML=`<div><div style="font-weight:600;font-size:13px;">${l.name}</div><div style="font-size:11px;color:#666;margin-top:2px;">TMU: ${l.tmu||"-"} · ${l.towers.length} ต้น</div></div>`+(cnt>0?`<div style="font-size:12px;color:#E24B4A;font-weight:600;">⚠ ${cnt}</div>`:sess?`<div style="font-size:11px;color:#1D9E75;">✓ บันทึกแล้ว</div>`:"");
+      btn.onclick=()=>openInspect(i);
+      list.appendChild(btn);
+    });
+  });
 }
 
+function _refreshZone(){
+  loadState();
+  const total=totalIssues();
+  const saved=Object.keys(state.sessions).length;
+  const sumEl=document.getElementById("zone-summary");
+  if(saved>0){sumEl.textContent=`บันทึกไว้ ${saved} สายส่ง · ${total} เสาที่มีปัญหา`;sumEl.style.display="";}
+  else sumEl.style.display="none";
+  ["bkk","west"].forEach(z=>{
+    const cnt=Object.entries(state.sessions).filter(([k])=>k.startsWith(z)).length;
+    document.getElementById(z+"-count").textContent=`จำนวน ${DB[z].length} Route สายส่ง`+(cnt>0?` · ตรวจแล้ว ${cnt} สาย`:"");
+  });
+  document.getElementById("btn-summary-zone").style.display=total>0?"":"none";
+  document.getElementById("btn-clear").style.display=saved>0?"":"none";
+}
+
+// showLinesInternal kept as alias for compatibility
 function showLinesInternal(){
   const total=totalIssues();
   document.getElementById("lines-title").textContent=currentZone==="bkk"?"กรุงเทพฯ และปริมณฑล":"ภาคตะวันตก";
@@ -528,9 +551,8 @@ function exportCSV(){
 }
 
 // Init
-showZone();
-// Push initial state for Android back button
 history.replaceState({screen:"zone"}, "", "");
+showZone();
 </script>
 </body>
 </html>
