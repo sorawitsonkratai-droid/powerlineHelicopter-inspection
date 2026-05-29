@@ -170,7 +170,23 @@ function showScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById("screen-"+id).classList.add("active");
   window.scrollTo(0,0);
+  // Push state so Android back button works
+  history.pushState({screen:id}, "", "");
 }
+
+// Handle Android back button
+window.addEventListener("popstate", function(e){
+  const screen = e.state?.screen || "zone";
+  // Determine where to go back to
+  const active = document.querySelector(".screen.active")?.id?.replace("screen-","");
+  if(active === "inspect") showLines();
+  else if(active === "lines") showZone();
+  else if(active === "summary") showScreen(prevScreen);
+  else {
+    // Already at zone - let default back happen
+    history.back();
+  }
+});
 
 function totalIssues(){
   return Object.values(state.sessions).reduce((sum,s)=>
@@ -454,6 +470,8 @@ function exportCSV(){
 
 // Init
 showZone();
+// Push initial state for Android back button
+history.replaceState({screen:"zone"}, "", "");
 </script>
 </body>
 </html>
