@@ -312,7 +312,7 @@ function renderTowerCard(tower,tIdx){
   el.className="card"+(isChecked?" checked":hasIssue?" has-issue":"");
 
   const poleChips=["โคนเสารก","เถาวัลย์","อื่นๆ"].map(v=>`<span class="chip${(d.pole||[]).includes(v)?" active-orange":""}" onclick="toggleIssue('${tower}',${tIdx},'pole','${v}')">${v}</span>`).join("");
-  const spanChips=["ต้นไม้","สปส.","อื่นๆ"].map(v=>`<span class="chip${(d.span||[]).includes(v)?" active-blue":""}" onclick="toggleIssue('${tower}',${tIdx},'span','${v}')">${v}</span>`).join("");
+  const spanChips=["ต้นไม้","สปส.","ขุดดิน/ถมดิน","อื่นๆ"].map(v=>`<span class="chip${(d.span||[]).includes(v)?" active-blue":""}" onclick="toggleIssue('${tower}',${tIdx},'span','${v}')">${v}</span>`).join("");
   const showPoleOther=(d.pole||[]).includes("อื่นๆ");
   const showPoleNote=(d.pole||[]).length>0||d.poleOther;
   const hasSpanIssue=(d.span||[]).length>0||d.spanOther;
