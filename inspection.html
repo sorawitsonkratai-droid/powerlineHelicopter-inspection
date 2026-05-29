@@ -166,27 +166,86 @@ function clearAll(){
   showZone();
 }
 
-function showScreen(id){
+function showScreen(id, pushHistory=true){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById("screen-"+id).classList.add("active");
   window.scrollTo(0,0);
-  // Push state so Android back button works
-  history.pushState({screen:id}, "", "");
+  if(pushHistory){
+    history.pushState({screen:id}, "", "");
+  }
 }
 
 // Handle Android back button
 window.addEventListener("popstate", function(e){
-  const screen = e.state?.screen || "zone";
-  // Determine where to go back to
   const active = document.querySelector(".screen.active")?.id?.replace("screen-","");
-  if(active === "inspect") showLines();
-  else if(active === "lines") showZone();
-  else if(active === "summary") showScreen(prevScreen);
-  else {
-    // Already at zone - let default back happen
-    history.back();
+  if(active === "inspect"){
+    showLinesInternal();
+    // re-push lines state so next back goes to zone
+    history.pushState({screen:"lines"}, "", "");
+  } else if(active === "lines"){
+    showZoneInternal();
+    // re-push zone state so next back exits app
+    history.pushState({screen:"zone"}, "", "");
+  } else if(active === "summary"){
+    showScreenInternal(prevScreen);
+    history.pushState({screen:prevScreen}, "", "");
   }
+  // zone: do nothing, browser handles exit naturally
 });
+
+// Internal versions that don't push history (called from popstate)
+function showScreenInternal(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+id).classList.add("active");
+  window.scrollTo(0,0);
+}
+
+function showLinesInternal(){
+  const total=totalIssues();
+  document.getElementById("lines-title").textContent=currentZone==="bkk"?"กรุงเทพฯ และปริมณฑล":"ภาคตะวันตก";
+  document.getElementById("btn-summary-lines").style.display=total>0?"":"none";
+  const list=document.getElementById("lines-list");
+  list.innerHTML="";
+  const groups=GROUPS[currentZone];
+  groups.forEach((group,gIdx)=>{
+    if(gIdx>0){
+      const div=document.createElement("div");
+      div.style.cssText="height:1px;background:#d0d5e8;margin:6px 0 10px;";
+      list.appendChild(div);
+    }
+    group.forEach(i=>{
+      const l=DB[currentZone][i];
+      if(!l) return;
+      const key=`${currentZone}_${i}`;
+      const sess=state.sessions[key];
+      const cnt=sess?Object.values(sess.towers||{}).filter(d=>d&&((d.pole||[]).length||(d.span||[]).length||d.poleOther||d.spanOther)).length:0;
+      const btn=document.createElement("button");
+      btn.className="line-btn"+(cnt>0?" has-issue":"");
+      btn.innerHTML=`<div><div style="font-weight:600;font-size:13px;">${l.name}</div><div style="font-size:11px;color:#666;margin-top:2px;">TMU: ${l.tmu||"-"} · ${l.towers.length} ต้น</div></div>`+
+        (cnt>0?`<div style="font-size:12px;color:#E24B4A;font-weight:600;">⚠ ${cnt}</div>`:sess?`<div style="font-size:11px;color:#1D9E75;">✓ บันทึกแล้ว</div>`:"");
+      btn.onclick=()=>openInspect(i);
+      list.appendChild(btn);
+    });
+  });
+  prevScreen="lines";
+  showScreenInternal("lines");
+}
+
+function showZoneInternal(){
+  loadState();
+  const total=totalIssues();
+  const saved=Object.keys(state.sessions).length;
+  const sumEl=document.getElementById("zone-summary");
+  if(saved>0){sumEl.textContent=`บันทึกไว้ ${saved} สายส่ง · ${total} เสาที่มีปัญหา`;sumEl.style.display="";}
+  else sumEl.style.display="none";
+  ["bkk","west"].forEach(z=>{
+    const cnt=Object.entries(state.sessions).filter(([k])=>k.startsWith(z)).length;
+    document.getElementById(z+"-count").textContent=`จำนวน ${DB[z].length} Route สายส่ง`+(cnt>0?` · ตรวจแล้ว ${cnt} สาย`:"");
+  });
+  document.getElementById("btn-summary-zone").style.display=total>0?"":"none";
+  document.getElementById("btn-clear").style.display=saved>0?"":"none";
+  showScreenInternal("zone");
+}
 
 function totalIssues(){
   return Object.values(state.sessions).reduce((sum,s)=>
